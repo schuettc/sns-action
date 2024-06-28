@@ -3,5 +3,15 @@
 name: sns-action
 description: A GitHub Action for sns-action
 runs:
-  using: node16
+  using: node20
   main: dist/index.js
+inputs:
+  topicArn:
+    description: The ARN of the topic
+    required: true
+  message:
+    description: The message you want to send
+    required: true
+outputs:
+  notificationId:
+    description: The ID of the notification
