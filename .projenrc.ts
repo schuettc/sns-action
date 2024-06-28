@@ -5,7 +5,7 @@ import {
 const project = new GitHubActionTypeScriptProject({
   defaultReleaseBranch: 'main',
   deps: ['@aws-sdk/client-sns', '@actions/core', '@actions/github'],
-  devDeps: ['projen-github-action-typescript'],
+  devDeps: ['projen-github-action-typescript', 'aws-sdk-client-mock'],
   name: 'sns-action',
   projenrcTs: true,
   actionMetadata: {

@@ -222,13 +222,13 @@
       },
       "steps": [
         {
-          "exec": "npx npm-check-updates@16 --upgrade --target=minor --peer --dep=dev,peer,prod,optional --filter=@types/jest,@vercel/ncc,eslint-import-resolver-typescript,eslint-plugin-import,jest,projen,projen-github-action-typescript,ts-jest,ts-node,typescript,@actions/core,@actions/github,@aws-sdk/client-sns"
+          "exec": "npx npm-check-updates@16 --upgrade --target=minor --peer --dep=dev,peer,prod,optional --filter=@types/jest,@vercel/ncc,aws-sdk-client-mock,eslint-import-resolver-typescript,eslint-plugin-import,jest,projen,projen-github-action-typescript,ts-jest,ts-node,typescript,@actions/core,@actions/github,@aws-sdk/client-sns"
         },
         {
           "exec": "yarn install --check-files"
         },
         {
-          "exec": "yarn upgrade @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser @vercel/ncc constructs eslint-import-resolver-typescript eslint-plugin-import eslint jest jest-junit projen projen-github-action-typescript standard-version ts-jest ts-node typescript @actions/core @actions/github @aws-sdk/client-sns"
+          "exec": "yarn upgrade @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser @vercel/ncc aws-sdk-client-mock constructs eslint-import-resolver-typescript eslint-plugin-import eslint jest jest-junit projen projen-github-action-typescript standard-version ts-jest ts-node typescript @actions/core @actions/github @aws-sdk/client-sns"
         },
         {
           "exec": "npx projen"

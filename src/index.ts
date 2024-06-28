@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     // Get inputs
     const topicArn = core.getInput('topicArn', { required: true });
@@ -39,4 +39,18 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+// Only call run() if this file is being run directly
+if (require.main === module) {
+  run()
+    .then(() => {
+      // Success case - do nothing as errors are handled within run()
+    })
+    .catch((error) => {
+      // This catch block handles any errors not caught within run()
+      if (error instanceof Error) {
+        core.setFailed(`Unhandled error: ${error.message}`);
+      } else {
+        core.setFailed('An unknown error occurred');
+      }
+    });
+}

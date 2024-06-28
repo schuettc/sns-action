@@ -12,6 +12,13 @@ inputs:
   message:
     description: The message you want to send
     required: true
+  subject:
+    description: The subject of the message
+    required: false
+  region:
+    description: The region where the topic is located
+    required: true
+    default: us-east-1
 outputs:
   notificationId:
     description: The ID of the notification
