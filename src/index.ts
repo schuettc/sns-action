@@ -6,9 +6,9 @@ export async function run(): Promise<void> {
   try {
     const { eventName, payload } = github.context;
 
-    if (eventName !== 'pull_request') {
+    if (eventName !== 'pull_request' && eventName !== 'push') {
       core.info(
-        `Skipping event ${eventName}, only processing pull_request events`,
+        `Skipping event ${eventName}, only processing pull_request and push events`,
       );
       return;
     }
@@ -17,34 +17,55 @@ export async function run(): Promise<void> {
     const topicArn = core.getInput('topicArn', { required: true });
     const region = core.getInput('region', { required: true });
 
-    const pullRequest = payload.pull_request;
-    if (!pullRequest) {
-      throw new Error('Pull request data is missing from the webhook payload');
+    let messageObject: any;
+
+    if (eventName === 'pull_request') {
+      const pullRequest = payload.pull_request;
+      if (!pullRequest) {
+        throw new Error(
+          'Pull request data is missing from the webhook payload',
+        );
+      }
+
+      const repo = payload.repository;
+      const owner = repo?.owner?.login || '';
+      const repoName = repo?.name || '';
+
+      messageObject = {
+        eventType: 'pull_request',
+        action: payload.action || 'unknown',
+        pullRequestNumber: payload.number || pullRequest.number,
+        pullRequestTitle: pullRequest.title || '',
+        pullRequestState: pullRequest.state || 'unknown',
+        pullRequestUrl: pullRequest.html_url || '',
+        diffUrl: pullRequest.diff_url || '',
+        patchUrl: pullRequest.patch_url || '',
+        commitSha: pullRequest.head?.sha || '',
+        baseBranch: pullRequest.base?.ref || '',
+        headBranch: pullRequest.head?.ref || '',
+        owner,
+        repo: repoName,
+        isDraft: pullRequest.draft || false,
+        changedFiles: pullRequest.changed_files || 0,
+        additions: pullRequest.additions || 0,
+        deletions: pullRequest.deletions || 0,
+      };
+    } else if (eventName === 'push') {
+      const push = payload;
+      messageObject = {
+        eventType: 'push',
+        ref: push.ref,
+        before: push.before,
+        after: push.after,
+        repository: {
+          id: push.repository!.id,
+          name: push.repository!.name,
+          full_name: push.repository!.full_name,
+        },
+        pusher: push.pusher,
+        commits: push.commits,
+      };
     }
-
-    const repo = payload.repository;
-    const owner = repo?.owner?.login || '';
-    const repoName = repo?.name || '';
-
-    // Create message object
-    const messageObject = {
-      action: payload.action || 'unknown',
-      pullRequestNumber: payload.number || pullRequest.number,
-      pullRequestTitle: pullRequest.title || '',
-      pullRequestState: pullRequest.state || 'unknown',
-      pullRequestUrl: pullRequest.html_url || '',
-      diffUrl: pullRequest.diff_url || '',
-      patchUrl: pullRequest.patch_url || '',
-      commitSha: pullRequest.head?.sha || '',
-      baseBranch: pullRequest.base?.ref || '',
-      headBranch: pullRequest.head?.ref || '',
-      owner,
-      repo: repoName,
-      isDraft: pullRequest.draft || false,
-      changedFiles: pullRequest.changed_files || 0,
-      additions: pullRequest.additions || 0,
-      deletions: pullRequest.deletions || 0,
-    };
 
     // Create SNS client
     const client = new SNSClient({ region });
@@ -53,7 +74,9 @@ export async function run(): Promise<void> {
     const params = {
       TopicArn: topicArn,
       Message: JSON.stringify(messageObject),
-      Subject: `GitHub Pull Request ${payload.action || 'Event'}`,
+      Subject: `GitHub ${
+        eventName.charAt(0).toUpperCase() + eventName.slice(1)
+      } Event`,
     };
 
     // Send message
