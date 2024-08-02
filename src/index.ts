@@ -4,33 +4,46 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
 export async function run(): Promise<void> {
   try {
+    const { eventName, payload } = github.context;
+
+    if (eventName !== 'pull_request') {
+      core.info(
+        `Skipping event ${eventName}, only processing pull_request events`,
+      );
+      return;
+    }
+
     // Get inputs
     const topicArn = core.getInput('topicArn', { required: true });
     const region = core.getInput('region', { required: true });
 
-    // Extract relevant information from GitHub context
-    const { payload, eventName, sha, ref } = github.context;
+    const pullRequest = payload.pull_request;
+    if (!pullRequest) {
+      throw new Error('Pull request data is missing from the webhook payload');
+    }
+
     const repo = payload.repository;
     const owner = repo?.owner?.login || '';
     const repoName = repo?.name || '';
-    let pullRequestNumber: number | undefined;
-    let pullRequestTitle: string | undefined;
-
-    if (eventName === 'pull_request') {
-      pullRequestNumber = payload.pull_request?.number;
-      pullRequestTitle = payload.pull_request?.title;
-    }
 
     // Create message object
     const messageObject = {
-      eventName,
-      sha,
-      ref,
+      action: payload.action || 'unknown',
+      pullRequestNumber: payload.number || pullRequest.number,
+      pullRequestTitle: pullRequest.title || '',
+      pullRequestState: pullRequest.state || 'unknown',
+      pullRequestUrl: pullRequest.html_url || '',
+      diffUrl: pullRequest.diff_url || '',
+      patchUrl: pullRequest.patch_url || '',
+      commitSha: pullRequest.head?.sha || '',
+      baseBranch: pullRequest.base?.ref || '',
+      headBranch: pullRequest.head?.ref || '',
       owner,
       repo: repoName,
-      pullRequestNumber,
-      pullRequestTitle,
-      commitMessage: payload.head_commit?.message || '',
+      isDraft: pullRequest.draft || false,
+      changedFiles: pullRequest.changed_files || 0,
+      additions: pullRequest.additions || 0,
+      deletions: pullRequest.deletions || 0,
     };
 
     // Create SNS client
@@ -40,7 +53,7 @@ export async function run(): Promise<void> {
     const params = {
       TopicArn: topicArn,
       Message: JSON.stringify(messageObject),
-      Subject: `GitHub ${eventName} Notification`,
+      Subject: `GitHub Pull Request ${payload.action || 'Event'}`,
     };
 
     // Send message
@@ -54,9 +67,6 @@ export async function run(): Promise<void> {
     } else {
       throw new Error('Failed to get MessageId from SNS publish response');
     }
-
-    // Log GitHub context (optional, for debugging)
-    core.debug(JSON.stringify(github.context, null, 2));
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }
