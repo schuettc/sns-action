@@ -6,9 +6,32 @@ export async function run(): Promise<void> {
   try {
     // Get inputs
     const topicArn = core.getInput('topicArn', { required: true });
-    const message = core.getInput('message', { required: true });
-    const subject = core.getInput('subject');
     const region = core.getInput('region', { required: true });
+
+    // Extract relevant information from GitHub context
+    const { payload, eventName, sha, ref } = github.context;
+    const repo = payload.repository;
+    const owner = repo?.owner?.login || '';
+    const repoName = repo?.name || '';
+    let pullRequestNumber: number | undefined;
+    let pullRequestTitle: string | undefined;
+
+    if (eventName === 'pull_request') {
+      pullRequestNumber = payload.pull_request?.number;
+      pullRequestTitle = payload.pull_request?.title;
+    }
+
+    // Create message object
+    const messageObject = {
+      eventName,
+      sha,
+      ref,
+      owner,
+      repo: repoName,
+      pullRequestNumber,
+      pullRequestTitle,
+      commitMessage: payload.head_commit?.message || '',
+    };
 
     // Create SNS client
     const client = new SNSClient({ region });
@@ -16,8 +39,8 @@ export async function run(): Promise<void> {
     // Prepare message parameters
     const params = {
       TopicArn: topicArn,
-      Message: message,
-      Subject: subject || undefined,
+      Message: JSON.stringify(messageObject),
+      Subject: `GitHub ${eventName} Notification`,
     };
 
     // Send message
@@ -41,16 +64,5 @@ export async function run(): Promise<void> {
 
 // Only call run() if this file is being run directly
 if (require.main === module) {
-  run()
-    .then(() => {
-      // Success case - do nothing as errors are handled within run()
-    })
-    .catch((error) => {
-      // This catch block handles any errors not caught within run()
-      if (error instanceof Error) {
-        core.setFailed(`Unhandled error: ${error.message}`);
-      } else {
-        core.setFailed('An unknown error occurred');
-      }
-    });
+  void run();
 }

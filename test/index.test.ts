@@ -8,6 +8,26 @@ const snsMock = mockClient(SNSClient);
 // Mock the @actions/core module
 jest.mock('@actions/core');
 
+// Mock the @actions/github module
+jest.mock('@actions/github', () => ({
+  context: {
+    payload: {
+      repository: {
+        owner: {
+          login: 'testowner',
+        },
+        name: 'testrepo',
+      },
+      head_commit: {
+        message: 'Test commit message',
+      },
+    },
+    eventName: 'pull_request',
+    sha: 'testsha',
+    ref: 'refs/heads/main',
+  },
+}));
+
 // Import the function to test
 import { run } from '../src/index';
 
@@ -22,10 +42,6 @@ describe('SNS Publish Action', () => {
       switch (name) {
         case 'topicArn':
           return 'arn:aws:sns:us-east-2:123456789012:MyTopic';
-        case 'message':
-          return 'Test message';
-        case 'subject':
-          return 'Test subject';
         case 'region':
           return 'us-east-2';
         default:
@@ -47,8 +63,17 @@ describe('SNS Publish Action', () => {
     const publishCall = snsMock.calls()[0];
     expect(publishCall.args[0].input).toEqual({
       TopicArn: 'arn:aws:sns:us-east-2:123456789012:MyTopic',
-      Message: 'Test message',
-      Subject: 'Test subject',
+      Message: JSON.stringify({
+        eventName: 'pull_request',
+        sha: 'testsha',
+        ref: 'refs/heads/main',
+        owner: 'testowner',
+        repo: 'testrepo',
+        pullRequestNumber: undefined,
+        pullRequestTitle: undefined,
+        commitMessage: 'Test commit message',
+      }),
+      Subject: 'GitHub pull_request Notification',
     });
 
     // Verify that the output was set correctly

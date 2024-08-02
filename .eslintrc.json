@@ -224,6 +224,15 @@
   "overrides": [
     {
       "files": [
+        "src/*.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off",
+        "import/no-extraneous-dependencies": "off"
+      }
+    },
+    {
+      "files": [
         ".projenrc.ts"
       ],
       "rules": {

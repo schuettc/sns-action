@@ -40,4 +40,12 @@ const project = new GitHubActionTypeScriptProject({
   },
 });
 
+project.eslint!.addOverride({
+  files: ['src/*.ts'],
+  rules: {
+    '@typescript-eslint/no-require-imports': 'off',
+    'import/no-extraneous-dependencies': 'off',
+  },
+});
+
 project.synth();
